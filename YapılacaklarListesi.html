@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yapılacaklar Listesi</title>
+    <!-- Bootstrap ve Font Awesome kütüphaneleri için bağlantılar -->
+    <link
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <!-- Stil tanımlamaları -->
+    <style>
+      #taskInput {
+        width: 70%;
+        margin-right: 10px;
+      }
+      .completed {
+        text-decoration: line-through;
+      }
+      .clear-button {
+        background-color: #393536;
+        color: #fff;
+        border: none;
+      }
+      #messageArea {
+        margin-top: 10px;
+        padding: 10px;
+        border-left: none;
+        border-right: none;
+      }
+      .options-container {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .options-container button {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+      .edit-icon:before {
+        content: "\1F589"; /* Unicode kalem ikonu */
+        margin-right: 5px;
+      }
+      .delete-icon:before {
+        content: "\1F5D1"; /* Unicode çöp kutusu ikonu */
+        margin-right: 5px;
+      }
+      .arka {
+        background-color: white;
+        width: 50%;
+        height: 50%;
+        border-radius: 20px;
+      }
+      body {
+        background-color: #3f4347; /* Gri arka plan rengi */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 50px;
+      }
+      .button {
+        background-color: #fff;
+        color: rgb(85, 80, 80);
+        border: 1px solid #fff;
+        margin-right: 50px;
+      }
+      .container {
+        margin-bottom: 50px; /* En son listeye alttan 50px boşluk eklemek için */
+      }
+      .list-group-item {
+        /* Sağ, sol ve üst çizgileri kaldırmak için  */
+        position: relative;
+        border-left: none;
+        border-right: none;
+      }
+      .dotsButton {
+        background-color: white; /* Arka plan rengini beyaz olarak ayarlamak için */
+        color: #000; /*  Yazı rengini siyah yapmak için */
+        font-size: 25px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Ana konteyner -->
+    <div class="arka">
+      <div class="container mt-5">
+        <!-- Yapılacak iş eklemek için input alanı -->
+        <div class="input-group mb-3">
+          <input
+            type="text"
+            id="taskInput"
+            class="form-control"
+            placeholder="&#x11054; Yapılacak İş Ekle"
+            onkeydown="if(event.keyCode == 13) addTask();"
+          />
+        </div>
+
+        <!-- Yapılacak işleri filtrelemek ve temizlemek için düğmeler -->
+        <div class="btn-group" role="group" aria-label="Basic example">
+          <button type="button" class="button" onclick="showAll()">
+            Hepsi
+          </button>
+          <button type="button" class="button" onclick="showOngoing()">
+            Devam Eden
+          </button>
+          <button type="button" class="button" onclick="showCompleted()">
+            Biten
+          </button>
+          <button class="btn btn-secondary clear-button" onclick="clearAll()">
+            Temizle
+          </button>
+        </div>
+
+        <!-- Yapılacak işlerin listelendiği ul elementi -->
+        <ul id="taskList" class="list-group mt-3"></ul>
+
+        <!-- Mesaj alanı (eğer yapılacak iş yoksa görünen alan) -->
+        <div id="messageArea">_ _Yapılacaklar Listesi Boş_ _</div>
+      </div>
+
+      <!-- JavaScript kütüphaneleri -->
+      <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+      <!-- JavaScript kodları -->
+      <script>
+        // Yapılacak işlerin tutulduğu dizi
+        let tasks = [];
+        // Mesajın görünüp görünmeyeceğini kontrol eden değişken
+        let showMessage = false;
+
+        // Yapılacak iş eklemek için fonksiyon
+        function addTask() {
+          const taskInput = document.getElementById("taskInput");
+          const taskText = taskInput.value.trim();
+
+          if (taskText !== "") {
+            tasks.push({ text: taskText, completed: false });
+            taskInput.value = "";
+            renderTasks();
+          }
+        }
+
+        // Yapılacak işleri ekrana render etmek için fonksiyon
+        function renderTasks() {
+          const taskList = document.getElementById("taskList");
+          taskList.innerHTML = "";
+
+          tasks.forEach((task, index) => {
+            // Yapılacak işin listesini oluştur
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item position-relative";
+
+            // Checkbox elementini oluştur
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = task.completed;
+            checkbox.addEventListener("change", () => toggleTask(index));
+            listItem.appendChild(checkbox);
+
+            // Yapılacak işin metnini gösteren elementi oluştur
+            const taskText = document.createElement("span");
+            taskText.innerText = task.text;
+            if (task.completed) {
+              taskText.classList.add("completed");
+            }
+            listItem.appendChild(taskText);
+
+            // Düzenle ve Sil seçeneklerini gösteren butonu oluştur
+            const dotsButton = document.createElement("button");
+            dotsButton.className = "btn  btn-sm float-right dotsButton  ";
+            dotsButton.innerHTML = "...";
+            dotsButton.addEventListener("click", () => showOptions(index));
+            listItem.appendChild(dotsButton);
+
+            // Listeye oluşturulan elemanı ekle
+            taskList.appendChild(listItem);
+          });
+
+          // Mesaj alanını güncelle
+          const messageArea = document.getElementById("messageArea");
+          messageArea.style.display = showMessage ? "block" : "none";
+        }
+
+        // Yapılacak işin durumunu değiştirmek için fonksiyon
+        function toggleTask(index) {
+          tasks[index].completed = !tasks[index].completed;
+          renderTasks();
+        }
+
+        // Düzenleme ve Silme seçeneklerini göstermek için fonksiyon
+        function showOptions(index) {
+          const listItem = document.getElementById("taskList").children[index];
+          const optionsContainer = listItem.querySelector(".options-container");
+
+          if (!optionsContainer) {
+            // Seçenekler container'ını oluştur
+            const container = document.createElement("div");
+            container.className = "options-container";
+
+            // Düzenleme butonunu oluştur
+            const editButton = document.createElement("button");
+            editButton.className = "btn btn-warning btn-sm";
+            editButton.innerHTML = '<span class="edit-icon"></span> Düzenle';
+            editButton.addEventListener("click", () => editTask(index));
+            container.appendChild(editButton);
+
+            // Silme butonunu oluştur
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "btn btn-danger btn-sm";
+            deleteButton.innerHTML = '<span class="delete-icon"></span> Sil';
+            deleteButton.addEventListener("click", () => deleteTask(index));
+            container.appendChild(deleteButton);
+
+            // Container'ı list item'a ekle
+            listItem.appendChild(container);
+          } else {
+            // Eğer container zaten varsa kaldır
+            listItem.removeChild(optionsContainer);
+          }
+        }
+
+        // Yapılacak işi düzenlemek için fonksiyon
+        function editTask(index) {
+          const taskInput = document.getElementById("taskInput");
+          taskInput.value = tasks[index].text;
+          tasks.splice(index, 1);
+          renderTasks();
+        }
+
+        // Yapılacak işi silmek için fonksiyon
+        function deleteTask(index) {
+          tasks.splice(index, 1);
+          renderTasks();
+        }
+
+        // Tüm işleri göstermek için fonksiyon
+        function showAll() {
+          renderTasks();
+        }
+
+        // Devam eden işleri göstermek için fonksiyon
+        function showOngoing() {
+          const ongoingTasks = tasks.filter((task) => !task.completed);
+          renderFilteredTasks(ongoingTasks);
+        }
+
+        // Tamamlanan işleri göstermek için fonksiyon
+        function showCompleted() {
+          const completedTasks = tasks.filter((task) => task.completed);
+          renderFilteredTasks(completedTasks);
+        }
+
+        // Filtrelenmiş işleri ekrana render etmek için fonksiyon
+        function renderFilteredTasks(filteredTasks) {
+          const taskList = document.getElementById("taskList");
+          taskList.innerHTML = "";
+
+          filteredTasks.forEach((task, index) => {
+            // Filtrelenmiş işin listesini oluştur
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item position-relative";
+
+            // Checkbox elementini oluştur
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = task.completed;
+            checkbox.addEventListener("change", () => toggleTask(index));
+            listItem.appendChild(checkbox);
+
+            // Yapılacak işin metnini gösteren elementi oluştur
+            const taskText = document.createElement("span");
+            taskText.innerText = task.text;
+            if (task.completed) {
+              taskText.classList.add("completed");
+            }
+            listItem.appendChild(taskText);
+
+            // Düzenle ve Sil seçeneklerini gösteren butonu oluştur
+            const dotsButton = document.createElement("button");
+            dotsButton.className = "btn  btn-sm float-right dotsButton";
+            dotsButton.innerHTML = "...";
+            dotsButton.addEventListener("click", () => showOptions(index));
+            listItem.appendChild(dotsButton);
+
+            // Listeye oluşturulan elemanı ekle
+            taskList.appendChild(listItem);
+          });
+
+          // Mesaj alanını güncelle
+          const messageArea = document.getElementById("messageArea");
+          messageArea.style.display = showMessage ? "block" : "none";
+        }
+
+        // Tüm işleri temizlemek için fonksiyon
+        function clearAll() {
+          tasks = [];
+          showMessage = true;
+          renderTasks();
+          showMessage = false;
+        }
+      </script>
+    </div>
+  </body>
+</html>
